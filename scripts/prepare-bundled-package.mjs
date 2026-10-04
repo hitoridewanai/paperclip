@@ -148,6 +148,10 @@ export function prepareBundledPackage(sourceDir, destinationDir, { sourceRoot = 
   rmSync(destinationDir, { recursive: true, force: true });
   mkdirSync(destinationDir, { recursive: true });
   for (const entry of sourcePackage.files ?? []) {
+    // Git-ref installs bundle the server without running its prepack, so build ui-dist here.
+    if (entry === "ui-dist" && !existsSync(resolve(sourceDir, entry))) {
+      execFileSync("bash", [resolve(sourceRoot, "scripts", "prepare-server-ui-dist.sh")], { stdio: "inherit" });
+    }
     cpSync(resolve(sourceDir, entry), resolve(destinationDir, entry), { recursive: true });
   }
   for (const entry of ["README.md", "LICENSE", "LICENSE.md"]) {
