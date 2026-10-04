@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 
-export function materializePublishManifest(pkg) {
+export function materializePublishManifest(pkg, workspaceVersions = new Map()) {
   const publishConfig = pkg.publishConfig ?? {};
   const publishManifest = { ...pkg };
 
@@ -22,7 +22,7 @@ export function materializePublishManifest(pkg) {
         if (typeof specifier !== "string" || !specifier.startsWith("workspace:")) return [name, specifier];
         const range = specifier.slice("workspace:".length);
         const prefix = range === "^" || range === "~" ? range : "";
-        return [name, `${prefix}${pkg.version}`];
+        return [name, `${prefix}${workspaceVersions.get(name) ?? pkg.version}`];
       }),
     );
   }
@@ -136,6 +136,13 @@ export function applyBundledDependencyPatches(destinationDir, bundledDependencie
   }
 }
 
+function readWorkspaceVersions(sourceRoot) {
+  const manifest = JSON.parse(readFileSync(resolve(sourceRoot, "scripts", "release-package-manifest.json"), "utf8"));
+  return new Map(
+    manifest.map(({ dir, name }) => [name, JSON.parse(readFileSync(resolve(sourceRoot, dir, "package.json"), "utf8")).version]),
+  );
+}
+
 export function prepareBundledPackage(sourceDir, destinationDir, { sourceRoot = repoRoot } = {}) {
   const sourcePackagePath = resolve(sourceDir, "package.json");
   const sourcePackage = JSON.parse(readFileSync(sourcePackagePath, "utf8"));
@@ -160,7 +167,7 @@ export function prepareBundledPackage(sourceDir, destinationDir, { sourceRoot = 
   }
 
   const deployedPackagePath = resolve(destinationDir, "package.json");
-  const publishManifest = materializePublishManifest(sourcePackage);
+  const publishManifest = materializePublishManifest(sourcePackage, readWorkspaceVersions(sourceRoot));
   // The staged copy is already built; its pack hooks only work from the workspace.
   for (const hook of ["prepack", "postpack"]) delete publishManifest.scripts?.[hook];
   const installManifest = createBundledInstallManifest(publishManifest, bundledDependencies);
