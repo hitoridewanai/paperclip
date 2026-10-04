@@ -161,6 +161,8 @@ export function prepareBundledPackage(sourceDir, destinationDir, { sourceRoot = 
 
   const deployedPackagePath = resolve(destinationDir, "package.json");
   const publishManifest = materializePublishManifest(sourcePackage);
+  // The staged copy is already built; its pack hooks only work from the workspace.
+  for (const hook of ["prepack", "postpack"]) delete publishManifest.scripts?.[hook];
   const installManifest = createBundledInstallManifest(publishManifest, bundledDependencies);
   writeFileSync(deployedPackagePath, `${JSON.stringify(installManifest, null, 2)}\n`);
 
