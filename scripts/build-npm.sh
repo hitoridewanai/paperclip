@@ -80,6 +80,12 @@ node "$REPO_ROOT/scripts/prepare-npm-readme.mjs" \
 # ── Step 6: Summary ───────────────────────────────────────────────────────────
 BUNDLE_SIZE=$(wc -c < "$DIST_DIR/index.js" | xargs)
 echo "  [6/6] Build verification..."
+# Git-ref installs pack workspace packages directly, so stage skills like release.sh does.
+for pkg_dir in server packages/adapters/claude-local packages/adapters/codex-local; do
+  rm -rf "$REPO_ROOT/$pkg_dir/skills"
+  cp -r "$REPO_ROOT/skills" "$REPO_ROOT/$pkg_dir/skills"
+done
+
 echo ""
 echo "Build complete."
 echo "  Bundle: cli/dist/index.js (${BUNDLE_SIZE} bytes)"
